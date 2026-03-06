@@ -115,8 +115,6 @@ async function fetchPolymarketMetrics(date: string): Promise<MetricRow[]> {
       url.searchParams.set("closed", "false");
       url.searchParams.set("limit", String(limit));
       url.searchParams.set("offset", String(offset));
-      url.searchParams.set("order", "volume_24hr");
-      url.searchParams.set("ascending", "false");
 
       const res = await fetch(url.toString());
       if (!res.ok) {

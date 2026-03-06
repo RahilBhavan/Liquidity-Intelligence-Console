@@ -51,25 +51,30 @@ export default function MarketsPage() {
       setLoader(true);
       setError(null);
       fetch(`/api/markets?${params}`)
-        .then((r) => r.json())
-        .then((res) => {
-          if (res.error) {
-            setError(res.error);
-            return;
-          }
-          const next = res.data ?? [];
-          const nextOffset = res.nextOffset ?? null;
-          if (append) {
-            setData((prev) =>
-              prev
-                ? { data: [...prev.data, ...next], nextOffset }
-                : { data: next, nextOffset }
-            );
-          } else {
-            setData({ data: next, nextOffset });
-          }
+        .then((r) => {
+          return r.json().then((res: { error?: string; data?: Market[]; nextOffset?: number | null }) => {
+            if (!r.ok || res.error) {
+              const msg = res.error ?? `Request failed (${r.status})`;
+              setError(msg);
+              return;
+            }
+            const next = res.data ?? [];
+            const nextOffset = res.nextOffset ?? null;
+            if (append) {
+              setData((prev) =>
+                prev
+                  ? { data: [...prev.data, ...next], nextOffset }
+                  : { data: next, nextOffset }
+              );
+            } else {
+              setData({ data: next, nextOffset });
+            }
+          });
         })
-        .catch(() => setError("Failed to load markets"))
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : "Failed to load markets";
+          setError(msg);
+        })
         .finally(() => {
           setLoading(false);
           setLoadingMore(false);
@@ -166,7 +171,11 @@ export default function MarketsPage() {
 
         {error && (
           <ErrorState
-            message={error}
+            message={
+              /fetch failed|Failed to fetch|NetworkError|ECONNREFUSED/i.test(error)
+                ? `${error}. Check that the dev server is running and Supabase env vars (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY) are set in apps/dashboard/.env.local.`
+                : error
+            }
             onRetry={() => fetchMarkets(0, false)}
             backHref="/"
             backLabel="Back to overview"

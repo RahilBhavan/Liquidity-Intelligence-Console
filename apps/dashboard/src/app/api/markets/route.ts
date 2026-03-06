@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
     const { data: markets, error } = await query;
 
     if (error) {
+      console.error("[GET /api/markets] markets query failed:", error.message, error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -59,11 +60,15 @@ export async function GET(request: NextRequest) {
     }
 
     const marketIds = markets.map((m) => m.id);
-    const { data: aggregates } = await supabase
+    const { data: aggregates, error: aggError } = await supabase
       .from("market_daily_aggregates")
       .select("market_id, date, total_volume, num_trades, unique_traders, avg_spread, health_score")
       .in("market_id", marketIds)
       .order("date", { ascending: false });
+
+    if (aggError) {
+      console.warn("[GET /api/markets] market_daily_aggregates query failed (returning markets without stats):", aggError.message);
+    }
 
     const aggByMarket = new Map<string, AggRow>();
     for (const a of aggregates ?? []) {
@@ -109,6 +114,7 @@ export async function GET(request: NextRequest) {
       nextOffset: enriched.length > offset + limit ? offset + limit : null,
     });
   } catch (e) {
+    console.error("[GET /api/markets] unhandled error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
