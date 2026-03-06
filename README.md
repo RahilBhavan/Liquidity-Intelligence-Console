@@ -63,6 +63,15 @@ Cross-platform console that ingests, normalizes, and analyzes event-level data f
 
 **Quick demo**: To see the UI without running ingestion, run `bun run dev` and open [http://localhost:3000/markets](http://localhost:3000/markets). The list may be empty until ingestion and the pipeline have run.
 
+### Deploy to Vercel
+
+1. **Root Directory**: In the Vercel project settings, set **Root Directory** to `apps/dashboard` (monorepo).
+2. **Build**: Vercel will run `next build` from that root; no extra config needed.
+3. **Environment variables**: Add in Vercel → Settings → Environment Variables:
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (required)
+   - Optionally `SUPABASE_SERVICE_ROLE_KEY` for server-only export features
+4. The dashboard uses `vercel.json` in `apps/dashboard` for caching headers and security; API list/status/benchmarks revalidate every 30–60s.
+
 **Ready to show**: Run `bun run dev`, open the app at http://localhost:3000, and use **Markets**, **Benchmarks**, and **Docs** (header). For the full narrative, use the [example founder deck](docs/consulting/example-founder-deck.md).
 
 ## Documentation

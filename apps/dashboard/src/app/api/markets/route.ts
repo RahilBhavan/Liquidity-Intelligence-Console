@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+/** Revalidate list response every 60s on Vercel (ISR-style). */
+export const revalidate = 60;
+
 type AggRow = {
   total_volume: number;
   num_trades: number;

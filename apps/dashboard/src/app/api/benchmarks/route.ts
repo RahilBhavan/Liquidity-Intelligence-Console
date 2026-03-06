@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+/** Revalidate benchmarks every 60s. */
+export const revalidate = 60;
+
 /**
  * GET /api/benchmarks?from=YYYY-MM-DD&to=YYYY-MM-DD
  * Platform-level headline metrics: total volume, active markets, avg spread.

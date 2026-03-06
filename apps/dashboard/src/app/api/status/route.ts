@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
+/** Revalidate status every 30s so "Data as of" stays reasonably fresh. */
+export const revalidate = 30;
+
 /**
  * GET /api/status
  * Returns data freshness (latest snapshot/daily timestamp) and app health.
