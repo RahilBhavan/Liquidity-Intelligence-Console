@@ -8,6 +8,7 @@
     "packages/analytics/*"
   ],
   "scripts": {
+    "vercel:env": "bash scripts/vercel-env.sh",
     "dev": "bun run --cwd apps/dashboard dev",
     "build": "bun run --cwd apps/dashboard build",
     "test": "bun run --cwd apps/dashboard test",

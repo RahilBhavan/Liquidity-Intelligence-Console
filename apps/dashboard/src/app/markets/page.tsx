@@ -173,7 +173,7 @@ export default function MarketsPage() {
           <ErrorState
             message={
               /fetch failed|Failed to fetch|NetworkError|ECONNREFUSED/i.test(error)
-                ? `${error}. Check that the dev server is running and Supabase env vars (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY) are set in apps/dashboard/.env.local.`
+                ? `${error}. Set Supabase env vars: locally in apps/dashboard/.env or .env.local (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY); on Vercel: Project Settings → Environment Variables, then redeploy.`
                 : error
             }
             onRetry={() => fetchMarkets(0, false)}
