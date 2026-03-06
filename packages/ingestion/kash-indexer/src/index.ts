@@ -1,0 +1,138 @@
+/**
+ * Kash indexer: fetches AMM/market events and writes to kash_raw_events.
+ * Idempotent via (block_number, tx_hash, log_index) unique constraint.
+ */
+import { createPublicClient, http, decodeEventLog, type Log } from "viem";
+import { base } from "viem/chains";
+import { supabase } from "@lic/db";
+
+const KASH_AMM_ADDRESS = process.env.KASH_AMM_ADDRESS as `0x${string}` | undefined;
+const KASH_RPC_URL = process.env.KASH_RPC_URL ?? process.env.BASE_RPC_URL ?? "https://mainnet.base.org";
+const CHUNK_SIZE = 2_000n;
+const POLL_INTERVAL_MS = 15_000;
+
+if (!KASH_AMM_ADDRESS || KASH_AMM_ADDRESS === "undefined") {
+  console.log("KASH_AMM_ADDRESS not set — skipping Kash indexer. Set it in .env when you have the contract address.");
+  process.exit(0);
+}
+
+const client = createPublicClient({
+  chain: base,
+  transport: http(KASH_RPC_URL),
+});
+
+/** Placeholder ABI: replace with actual from docs/kash-abi-and-events.md */
+const kashAbi = [
+  {
+    type: "event",
+    name: "MarketCreated",
+    inputs: [
+      { name: "marketId", type: "bytes32", indexed: true },
+      { name: "creator", type: "address", indexed: true },
+    ],
+  },
+  {
+    type: "event",
+    name: "Swap",
+    inputs: [
+      { name: "marketId", type: "bytes32", indexed: true },
+      { name: "trader", type: "address", indexed: true },
+      { name: "direction", type: "uint8" },
+      { name: "outcomeId", type: "uint256" },
+      { name: "size", type: "uint256" },
+      { name: "notional", type: "uint256" },
+      { name: "price", type: "uint256" },
+    ],
+  },
+] as const;
+
+function getLastIndexedBlock(): Promise<bigint> {
+  return supabase
+    .from("kash_raw_events")
+    .select("block_number")
+    .order("block_number", { ascending: false })
+    .limit(1)
+    .single()
+    .then(({ data }) => (data?.block_number ? BigInt(data.block_number) : 0n));
+}
+
+function logToRawRow(log: Log, blockTimestamp: Date): Record<string, unknown> {
+  let eventName = "Unknown";
+  let decodedArgs: Record<string, unknown> = {};
+  try {
+    const decoded = decodeEventLog({ abi: kashAbi, data: log.data, topics: log.topics });
+    eventName = decoded.eventName;
+    decodedArgs = decoded.args as Record<string, unknown>;
+  } catch {
+    decodedArgs = { topics: log.topics, data: log.data };
+  }
+  return {
+    block_number: Number(log.blockNumber),
+    tx_hash: log.transactionHash,
+    log_index: log.logIndex,
+    event_name: eventName,
+    contract_addr: log.address,
+    raw_data: decodedArgs,
+    timestamp: blockTimestamp.toISOString(),
+    ingested_at: new Date().toISOString(),
+  };
+}
+
+async function indexRange(fromBlock: bigint, toBlock: bigint): Promise<number> {
+  const logs = await client.getLogs({
+    address: KASH_AMM_ADDRESS!,
+    fromBlock,
+    toBlock,
+  });
+
+  if (logs.length === 0) return 0;
+
+  const blockTimestamps = new Map<bigint, Date>();
+  const blocks = [...new Set(logs.map((l) => l.blockNumber!))];
+  for (const blockNum of blocks) {
+    const block = await client.getBlock({ blockNumber: blockNum });
+    blockTimestamps.set(blockNum, new Date(Number(block.timestamp) * 1000));
+  }
+
+  const rows = logs.map((log) =>
+    logToRawRow(log, blockTimestamps.get(log.blockNumber!) ?? new Date())
+  );
+
+  const { error } = await supabase.from("kash_raw_events").upsert(rows, {
+    onConflict: "block_number,tx_hash,log_index",
+    ignoreDuplicates: true,
+  });
+
+  if (error) throw error;
+  return rows.length;
+}
+
+async function run(): Promise<void> {
+  let lastBlock = await getLastIndexedBlock();
+  const latestBlock = await client.getBlockNumber();
+  if (lastBlock === 0n) {
+    lastBlock = latestBlock - 10000n;
+    if (lastBlock < 0n) lastBlock = 0n;
+  }
+
+  while (lastBlock < latestBlock) {
+    const toBlock = lastBlock + CHUNK_SIZE < latestBlock ? lastBlock + CHUNK_SIZE : latestBlock;
+    const count = await indexRange(lastBlock + 1n, toBlock);
+    console.log(`Indexed ${count} events for blocks ${lastBlock + 1n}-${toBlock}`);
+    lastBlock = toBlock;
+  }
+
+  console.log("Caught up. Polling for new blocks every", POLL_INTERVAL_MS, "ms");
+  setInterval(async () => {
+    const latest = await client.getBlockNumber();
+    if (latest <= lastBlock) return;
+    const count = await indexRange(lastBlock + 1n, latest);
+    if (count > 0) console.log(`Indexed ${count} new events`);
+    lastBlock = latest;
+  }, POLL_INTERVAL_MS);
+}
+
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

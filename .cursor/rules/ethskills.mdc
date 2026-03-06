@@ -1,0 +1,16 @@
+---
+description: When to use local ETHSKILLS for indexer, L2, contracts, and dashboard work.
+globs: 
+alwaysApply: false
+---
+
+# ETHSKILLS (Ethereum / indexer context)
+
+When working on **chain ingestion** (Pred indexer, Kash onchain), **Base/L2**, **contract addresses**, or **dashboard UX** (addresses, tx links, loaders), read the relevant skill from [.cursor/ethskills/](.cursor/ethskills/):
+
+- **Indexer + pipeline:** [.cursor/ethskills/indexing.md](.cursor/ethskills/indexing.md), [.cursor/ethskills/l2s.md](.cursor/ethskills/l2s.md). Use [.cursor/ethskills/addresses.md](.cursor/ethskills/addresses.md) for contract addresses (never guess). [.cursor/ethskills/tools.md](.cursor/ethskills/tools.md) for RPCs, explorers, viem.
+- **Design / incentives:** [.cursor/ethskills/concepts.md](.cursor/ethskills/concepts.md). Event/ERC context: [.cursor/ethskills/standards.md](.cursor/ethskills/standards.md).
+- **Dashboard (Next.js):** If showing wallet addresses, chain IDs, or tx links: [.cursor/ethskills/frontend-ux.md](.cursor/ethskills/frontend-ux.md).
+- **Full-flow planning:** [.cursor/ethskills/ship.md](.cursor/ethskills/ship.md) routes to other skills by phase.
+
+Full list and when to use each: [.cursor/ethskills/README.md](.cursor/ethskills/README.md). Source: [ethskills.com](https://ethskills.com/).

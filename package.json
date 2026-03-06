@@ -1,0 +1,29 @@
+{
+  "name": "liquidity-intelligence-console",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "packages/ingestion/*",
+    "packages/analytics/*"
+  ],
+  "scripts": {
+    "dev": "bun run --cwd apps/dashboard dev",
+    "build": "bun run --cwd apps/dashboard build",
+    "test": "bun run --cwd apps/dashboard test",
+    "db:migrate": "supabase db push",
+    "ingest:pred": "bun run --cwd packages/ingestion/pred-indexer start",
+    "ingest:kash": "bun run --cwd packages/ingestion/kash-indexer start",
+    "ingest:incumbent": "bun run --cwd packages/ingestion/incumbent-collector start",
+    "normalize": "bun run --cwd packages/ingestion/normalize run",
+    "analytics:daily": "bun run --cwd packages/analytics/market-daily run",
+    "analytics:snapshots": "bun run --cwd packages/analytics/liquidity-snapshots run",
+    "analytics:trader": "bun run --cwd packages/analytics/trader-daily run",
+    "analytics:backfill": "bun run --cwd packages/analytics/market-daily run:backfill",
+    "pipeline": "bun run normalize && bun run analytics:daily && bun run analytics:snapshots && bun run analytics:trader",
+    "apply": "bun run db:migrate && bun run pipeline"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

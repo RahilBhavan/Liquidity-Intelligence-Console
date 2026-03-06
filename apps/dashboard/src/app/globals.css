@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: #111;
+  --background: #fafafa;
+  --blush: #e8d5d8;
+  /* Uniform spacing: section padding and content gaps */
+  --section-padding-y: 2.5rem;   /* py-10 */
+  --section-padding-y-md: 3rem;  /* md:py-12 */
+  --content-gap: 1.5rem;         /* 6 */
+  --content-gap-md: 2rem;       /* 8 */
+  --page-padding-x: 1.5rem;      /* px-6 */
+  --page-padding-x-md: 3rem;     /* md:px-12 */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 25s linear infinite;
+}
+
+@keyframes scroll-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.animate-scroll-bounce {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-skeleton {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Design system utilities */
+.text-muted {
+  color: var(--foreground);
+  opacity: 0.7;
+}
+
+.link-primary {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-primary:hover {
+  opacity: 0.8;
+}
+
+/* Focus ring for accessibility */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--foreground);
+}

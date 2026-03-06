@@ -1,0 +1,31 @@
+---
+description: REST/GraphQL endpoints, dashboard views, and export (CSV/PNG) from spec
+globs: "**/api/**/*,**/app/**/*,**/components/**/*"
+alwaysApply: false
+---
+
+# API and Dashboard
+
+## Backend API (REST or GraphQL)
+
+Implement at least these patterns from the spec:
+
+- `GET /markets?platform=pred&category=sports` — list markets with basic stats (filter by platform, category, etc.).
+- `GET /markets/:id/liquidity?interval=15m` — time-series of `market_liquidity_snapshots` for a market.
+- `GET /markets/:id/participants` — top wallets by volume and PnL for the market.
+- `GET /social/:market_id` — social posts, metrics, and sentiment for Kash markets (e.g. linked via `social_market_links`).
+- `GET /export/market/:id/daily` — CSV download from `market_daily_aggregates` (and related) for the market.
+
+Use consistent error handling, cursor or offset pagination for list endpoints, and type-safe responses (e.g. generated from Supabase/Postgres types).
+
+## Frontend Views (Next.js)
+
+- **Overview**: Cards per platform (total volume, active markets, avg spread, etc.).
+- **Market explorer**: Filter by platform, category, date range; chart price, spread, depth, volume over time.
+- **Participant view**: Distribution of volume by wallet; whale vs retail breakdown.
+- **Social view (Kash)**: Timeline linking tweet engagement to liquidity metrics.
+
+## Export
+
+- **CSV**: From aggregated tables (e.g. `market_daily_aggregates`) for use in decks and external tools.
+- **PNG**: Key charts (spread, depth, volume) exportable for reports and diagnostics.

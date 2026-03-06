@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  title: Liquidity Intelligence Console API
+  description: API for liquidity, market-quality, and behavior metrics (Pred, Kash, incumbents).
+  version: 0.1.0
+
+servers:
+  - url: /
+    description: Same origin as dashboard (e.g. http://localhost:3000)
+
+paths:
+  /api/status:
+    get:
+      summary: Data freshness and health
+      description: Latest data timestamp and app health for monitoring.
+      operationId: getStatus
+      responses:
+        "200":
+          description: OK and healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, status, data]
+                properties:
+                  ok: { type: boolean, example: true }
+                  status: { type: string, example: "healthy" }
+                  data:
+                    type: object
+                    properties:
+                      dataAsOf: { type: string, nullable: true, format: date-time }
+                      dataAsOfSnapshot: { type: string, nullable: true }
+                      dataAsOfDaily: { type: string, nullable: true }
+        "500":
+          description: Unhealthy or error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: false }
+                  status: { type: string, example: "unhealthy" }
+                  error: { type: string }
+                  data: { type: object }
+
+  /api/markets:
+    get:
+      summary: List markets
+      description: Markets with basic stats from market_daily_aggregates.
+      operationId: listMarkets
+      parameters:
+        - name: platform
+          in: query
+          schema: { type: string, enum: [pred, kash, kalshi, polymarket] }
+        - name: category
+          in: query
+          schema: { type: string, example: sports }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 100 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: sort
+          in: query
+          description: Sort key; e.g. health_score (latest-day score desc, nulls last), total_volume.
+          schema: { type: string, example: health_score }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, nextOffset]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Market" } }
+                  nextOffset: { type: ["integer", "null"] }
+
+  /api/markets/{id}:
+    get:
+      summary: Get market by ID
+      operationId: getMarket
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { $ref: "#/components/schemas/MarketMeta" }
+        "404":
+          description: Market not found
+          content:
+            application/json:
+              schema: { type: object, properties: { error: { type: string } } }
+
+  /api/markets/{id}/liquidity:
+    get:
+      summary: Market liquidity time-series
+      operationId: getMarketLiquidity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 500, maximum: 1000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, interval]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/LiquidityPoint" } }
+                  interval: { type: string, example: "15m" }
+
+  /api/markets/{id}/participants:
+    get:
+      summary: Market participants (top wallets)
+      operationId: getMarketParticipants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 20, maximum: 100 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/Participant" } }
+
+  /api/social/{marketId}:
+    get:
+      summary: Social posts and metrics for Kash market
+      operationId: getSocialByMarket
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [posts, metrics, sentiment]
+                    properties:
+                      posts: { type: array }
+                      metrics: { type: array }
+                      sentiment: { type: array }
+
+  /api/benchmarks:
+    get:
+      summary: Platform headline metrics
+      operationId: getBenchmarks
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date, description: "YYYY-MM-DD" }
+        - name: to
+          in: query
+          schema: { type: string, format: date, description: "YYYY-MM-DD" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, from, to]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        platformId: { type: string }
+                        platformName: { type: string }
+                        totalVolume: { type: number }
+                        activeMarkets: { type: integer }
+                        avgSpreadBps: { type: ["number", "null"] }
+                  from: { type: string, format: date }
+                  to: { type: string, format: date }
+
+  /api/export/market/{id}/daily:
+    get:
+      summary: CSV export – market daily aggregates
+      operationId: exportMarketDaily
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                description: CSV with date, total_volume, num_trades, avg_spread, median_spread, realized_vol, max_depth_bid_5, max_depth_ask_5, unique_traders, gini_participation
+
+components:
+  schemas:
+    Market:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        platform_id: { type: string }
+        external_market_id: { type: string }
+        symbol: { type: ["string", "null"] }
+        title: { type: ["string", "null"] }
+        category: { type: ["string", "null"] }
+        subcategory: { type: ["string", "null"] }
+        status: { type: string }
+        created_at: { type: string, format: date-time }
+        platforms: { type: ["object", "null"], properties: { name: { type: string } } }
+        stats:
+          type: object
+          properties:
+            total_volume: { type: number }
+            num_trades: { type: integer }
+            unique_traders: { type: integer }
+            avg_spread: { type: ["number", "null"] }
+            health_score: { type: ["number", "null"], description: "Market health 0-100 from latest market_daily_aggregates" }
+    MarketMeta:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: ["string", "null"] }
+        symbol: { type: ["string", "null"] }
+        category: { type: ["string", "null"] }
+        status: { type: string }
+        platformName: { type: ["string", "null"] }
+        health_score: { type: ["number", "null"], description: "Market health 0-100" }
+        health_score_date: { type: ["string", "null"], format: date, description: "Date of aggregate row used for health_score" }
+    LiquidityPoint:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        best_bid_price: { type: ["number", "null"] }
+        best_ask_price: { type: ["number", "null"] }
+        spread: { type: ["number", "null"] }
+        spread_bps: { type: ["number", "null"] }
+        depth_bid_1: { type: ["number", "null"] }
+        depth_ask_1: { type: ["number", "null"] }
+        depth_bid_5: { type: ["number", "null"] }
+        depth_ask_5: { type: ["number", "null"] }
+        volume_1h: { type: number }
+        trades_1h: { type: integer }
+        unique_traders_1h: { type: integer }
+    Participant:
+      type: object
+      properties:
+        wallet_id: { type: string }
+        address: { type: ["string", "null"] }
+        volume: { type: number }
+        trades: { type: integer }
+        pnl_estimate: { type: ["number", "null"] }

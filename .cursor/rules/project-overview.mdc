@@ -1,0 +1,27 @@
+---
+description: Product goal, data layers, stack, and pointer to full spec for Liquidity Intelligence Console
+alwaysApply: true
+---
+
+# Liquidity Intelligence Console – Project Overview
+
+## Objective
+
+Build a cross-platform **Liquidity Intelligence Console** that ingests, normalizes, and analyzes event-level data from **Pred** (Base-native order-book sports prediction exchange) and **Kash** (social-native, AI-powered prediction market on X). The console exposes institutional-grade liquidity, market-quality, and behavior metrics via a web dashboard and exportable artifacts (diagnostics, reports, benchmarks), giving founders an objective view of spreads, depth, and participant behavior.
+
+## Data Layers
+
+- **Raw**: Append-only mirror of chain logs and API payloads (e.g. `pred_raw_events`, `kash_raw_events`). No business logic; thin copy of source.
+- **Normalized**: Clean entities and relationships — `platforms`, `markets`, `market_outcomes`, `wallets`, `orders`, `trades`, `amm_trades`, `social_posts`, `social_metrics`, `social_market_links`.
+- **Aggregated**: Pre-computed analytics for fast dashboards — `market_liquidity_snapshots`, `market_daily_aggregates`, `trader_daily_stats`.
+
+## Stack
+
+- **Database**: Postgres (Supabase).
+- **API + Dashboard**: Next.js (API routes + UI).
+- **Analytics**: Python and/or SQL for batch/streaming metric jobs.
+- **Tooling**: Bun for Node/scripts and package management (per project preference).
+
+## Full Spec
+
+See **AGENTS.md** and the project spec document for personas, use cases, schema details, phases, and API/dashboard requirements.

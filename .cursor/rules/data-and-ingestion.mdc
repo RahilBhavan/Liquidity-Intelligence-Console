@@ -1,0 +1,27 @@
+---
+description: Idempotent ingestion, natural keys, reorg handling, raw vs normalized separation
+globs: "**/ingestion/**/*,**/migrations/**/*,**/*indexer*"
+alwaysApply: false
+---
+
+# Data and Ingestion
+
+## Idempotent Writes
+
+- Use a **natural key** for chain-sourced events: `(block_number, tx_hash, log_index)` (or platform equivalent). Enforce via unique constraint and `ON CONFLICT DO NOTHING` or `DO UPDATE` so re-running ingestion does not duplicate or corrupt data.
+- For API-sourced data, use the provider’s stable ID (e.g. external market ID, post ID) as the conflict target.
+
+## Reorg Handling
+
+- Optional: mark events as **confirmed** only after N blocks (e.g. 12+ on Base). On reorg detection, soft-delete or update affected rows rather than hard-deleting; keep raw tables append-only where possible.
+- Prefer idempotent normalization jobs that can be re-run after reorg correction.
+
+## Raw vs Normalized
+
+- **Raw tables**: Thin mirrors of source (chain logs, API payloads). Store decoded payload in `jsonb`; avoid encoding business rules or derived fields here. Append-only; normalization lives in separate jobs or migrations.
+- **Normalized tables**: Enforce clean types, FKs, and relationships. Populate from raw via deterministic, replayable scripts or migrations.
+
+## Indexing (for ingestion and queries)
+
+- Raw event tables: index on `(block_number, tx_hash, log_index)` for dedup; index on `timestamp` (or use BRIN) for time-range scans.
+- Large time-series: partition by date; index `(market_id, timestamp)` and `(wallet_id, date)` for analytics queries.
